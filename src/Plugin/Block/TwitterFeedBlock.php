@@ -11,6 +11,7 @@ use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use GuzzleHttp\ClientInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -32,6 +33,11 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
   protected $configFactory;
 
   /**
+   * @var \GuzzleHttp\ClientInterface
+   */
+  protected $http_client;
+
+  /**
    * Creates a TwitterFeedBlock instance.
    *
    * @param array $configuration
@@ -43,9 +49,10 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config_factory) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config_factory, ClientInterface $http_client) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->configFactory = $config_factory;
+    $this->http_client = $http_client;
   }
 
   /**
@@ -56,7 +63,8 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('config.factory')
+      $container->get('config.factory'),
+      $container->get('http_client')
     );
   }
 
@@ -147,30 +155,18 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
 
     $data = 'grant_type=client_credentials';
 
-    $header = array(
-      'Authorization: Basic ' . $encoded_key,
-      'Content-Length: ' . strlen($data),
+    $headers = array(
+      'Authorization' => 'Basic ' . $encoded_key,
+      'Content-Length' =>   strlen($data),
+      'Content-Type' => 'application/x-www-form-urlencoded;charset=UTF-8',
+      'Accept-Encoding' => 'gzip',
+      'User-Agent' => 'Finn\'s Twitter App v1.0.0'
     );
+    $this->http_client->setDefaultOption('headers', $headers);
+    $this->http_client->setDefaultOption('body', 'grant_type=client_credentials');
+    $response = $this->http_client->post('https://api.twitter.com/oauth2/token');
 
-    $options = array(
-      CURLOPT_HTTPHEADER => $header,
-      CURLOPT_POST => true,
-      CURLOPT_ENCODING => 'gzip',
-      CURLOPT_HEADER => false,
-      CURLOPT_POSTFIELDS => $data,
-      CURLOPT_RETURNTRANSFER => true,
-      CURLOPT_TIMEOUT => 10,
-      CURLOPT_AUTOREFERER => true,
-      CURLOPT_USERAGENT => 'My Twitter App v1.0.23',
-      CURLOPT_FOLLOWLOCATION => true,
-    );
-
-    $feed = curl_init('https://api.twitter.com/oauth2/token');
-    curl_setopt_array($feed, $options);
-    $json = curl_exec($feed);
-    curl_close($feed);
-
-    $parsed_response = json_decode($json, true);
+    $parsed_response = $response->json();
 
     $this->access_token = $parsed_response['access_token'];
     return $this;
@@ -179,26 +175,17 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
   private function performRequest() {
 
     $header = array(
-      'Authorization: Bearer ' . $this->access_token,
+      'Authorization' => 'Bearer ' . $this->access_token,
+      'User-Agent' => 'Finn\'s Twitter App v1.0.0'
     );
 
-    $options = array(
-      CURLOPT_HTTPHEADER => $header,
-      CURLOPT_ENCODING => 'gzip',
-      CURLOPT_HEADER => false,
-      CURLOPT_RETURNTRANSFER => true,
-      CURLOPT_TIMEOUT => 10,
-      CURLOPT_AUTOREFERER => true,
-      CURLOPT_USERAGENT => 'Finn\'s Twitter App v1.0.0',
-      CURLOPT_FOLLOWLOCATION => true,
-    );
+    // reset the header and body from the previous request
+    $this->http_client->setDefaultOption('headers', array());
+    $this->http_client->setDefaultOption('body', '');
+    $this->http_client->setDefaultOption('headers', $header);
+    $response = $this->http_client->get('https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=' . $this->configuration['username'] . '&count=' . $this->configuration['num_tweets']);
+    $parsed_response = $response->json();
 
-    $feed = curl_init('https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=' . $this->configuration['username'] . '&count=' . $this->configuration['num_tweets']);
-    curl_setopt_array($feed, $options);
-    $json = curl_exec($feed);
-    curl_close($feed);
-
-    $parsed_response = json_decode($json, true);
     return $parsed_response;
   }
 
