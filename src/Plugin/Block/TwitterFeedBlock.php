@@ -38,6 +38,11 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
   protected $http_client;
 
   /**
+   * @var string
+   */
+  protected $access_token;
+
+  /**
    * Creates a TwitterFeedBlock instance.
    *
    * @param array $configuration
@@ -153,19 +158,18 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
     //TODO - store bearer token and check here if it exists. If it does return.
     $encoded_key = base64_encode($config->get('twitter_api_key') . ':' . $config->get('twitter_secret_key'));
 
-    $data = 'grant_type=client_credentials';
-
-    $headers = array(
-      'Authorization' => 'Basic ' . $encoded_key,
-      'Content-Length' =>   strlen($data),
-      'Content-Type' => 'application/x-www-form-urlencoded;charset=UTF-8',
-      'Accept-Encoding' => 'gzip',
-      'User-Agent' => 'Finn\'s Twitter App v1.0.0'
+    $body = 'grant_type=client_credentials';
+    $options = array(
+      'headers' => array(
+        'Authorization' => 'Basic ' . $encoded_key,
+        'Content-Length' =>   strlen($body),
+        'Content-Type' => 'application/x-www-form-urlencoded;charset=UTF-8',
+        'Accept-Encoding' => 'gzip',
+        'User-Agent' => 'Finn\'s Twitter App v1.0.0'
+      ),
+      'body' => $body,
     );
-    $this->http_client->setDefaultOption('headers', $headers);
-    $this->http_client->setDefaultOption('body', 'grant_type=client_credentials');
-    $response = $this->http_client->post('https://api.twitter.com/oauth2/token');
-
+    $response = $this->http_client->post('https://api.twitter.com/oauth2/token', $options);
     $parsed_response = $response->json();
 
     $this->access_token = $parsed_response['access_token'];
@@ -173,19 +177,15 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
   }
 
   private function performRequest() {
-
-    $header = array(
-      'Authorization' => 'Bearer ' . $this->access_token,
-      'User-Agent' => 'Finn\'s Twitter App v1.0.0'
+    $options = array(
+      'headers' => array(
+        'Authorization' => 'Bearer ' . $this->access_token,
+        'User-Agent' => 'Finn\'s Twitter App v1.0.0'
+      ),
     );
 
-    // reset the header and body from the previous request
-    $this->http_client->setDefaultOption('headers', array());
-    $this->http_client->setDefaultOption('body', '');
-    $this->http_client->setDefaultOption('headers', $header);
-    $response = $this->http_client->get('https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=' . $this->configuration['username'] . '&count=' . $this->configuration['num_tweets']);
+    $response = $this->http_client->get('https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=' . $this->configuration['username'] . '&count=' . $this->configuration['num_tweets'], $options);
     $parsed_response = $response->json();
-
     return $parsed_response;
   }
 
