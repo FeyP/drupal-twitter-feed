@@ -137,12 +137,9 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
       $tweets_text[$key]['created_at'] = $tweet['created_at'];
     }
 
-    // Make username a URL to Twitter account.
-    $username = '<a href="http://www.twitter.com/' . $this->configuration['username'] . '" target="_blank">@' . $this->configuration['username'] . '</a>';
-
     return array(
       '#theme' => 'twitter_feed_block',
-      '#username' => $username,
+      '#username' => $this->configuration['username'],
       '#tweets' => $tweets_text,
       '#attached' => array(
         'library' =>  array(

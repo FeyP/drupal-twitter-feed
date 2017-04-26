@@ -10,7 +10,10 @@
  * @ingroup themeable
  */
 #}
-<h3>{{ 'Tweets for !username'|t({ '!username': username }) }}</h3>
+
+<h3><a href="https://www.twitter.com/{{ username }}" target="_blank">{{ 'Tweets for \@@username'|t({
+  '@username': username,
+})</a></h3>
 <ul>
     {% for tweet in tweets %}
         <li>
