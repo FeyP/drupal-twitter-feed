@@ -81,7 +81,7 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
     $config = is_object($this->configFactory) ? $this->configFactory->get('twitter_feed.settings') : \Drupal::config('twitter_feed.settings');
     return [
       'username' => '',
-      'max_tweets' => $config->get('max_tweets'),
+      'num_tweets' => $config->get('max_tweets'),
     ];
   }
 
@@ -92,7 +92,7 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
     $config = $this->configuration;
 
     $defaults = $this->defaultConfiguration();
-    $options = range(0, $defaults['max_tweets']);
+    $options = range(0, $defaults['num_tweets']);
 
     $form['username'] = [
       '#type' => 'textfield',
