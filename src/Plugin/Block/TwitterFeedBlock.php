@@ -150,9 +150,11 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * Gets a bearer token from Twitter API.
    */
   protected function getBearerToken() {
-    $config = $this->configFactory->get('twitter_feed.settings');
+    if ($this->accessToken) {
+      return $this;
+    }
 
-    // @todo: Store bearer token and check here if it exists. If it does return.
+    $config = $this->configFactory->get('twitter_feed.settings');
     $encoded_key = base64_encode($config->get('twitter_api_key') . ':' . $config->get('twitter_secret_key'));
 
     $body = 'grant_type=client_credentials';
@@ -264,7 +266,6 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * {@inheritdoc}
    */
   public function getCacheTags() {
-    // @todo: I don't know what this means yet.
     $cache_tags = parent::getCacheTags();
     $cache_tags[] = 'config:twitter_feed.block';
     return $cache_tags;
@@ -274,7 +275,6 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * {@inheritdoc}
    */
   protected function getRequiredCacheContexts() {
-    // @todo: Understand caching better.
     return ['cache_context.user.roles', 'cache_context.language'];
   }
 
