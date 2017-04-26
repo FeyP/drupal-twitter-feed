@@ -2,6 +2,7 @@
 
 namespace Drupal\twitter_feed\Plugin\Block;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -166,9 +167,10 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
       'body' => $body,
     ];
     $response = $this->httpClient->post('https://api.twitter.com/oauth2/token', $options);
-    $parsed_response = $response->json();
-
-    $this->accessToken = $parsed_response['access_token'];
+    if ($response) {
+      $parsed_response = Json::decode($response->getBody());
+      $this->accessToken = isset($parsed_response['access_token']) ? $parsed_response['access_token'] : NULL;
+    }
     return $this;
   }
 
@@ -187,7 +189,7 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
     ];
 
     $response = $this->httpClient->get('https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=' . $this->configuration['username'] . '&count=' . $this->configuration['num_tweets'], $options);
-    $parsed_response = $response->json();
+    $parsed_response = $response ? Json::decode($response->getBody()) : NULL;
     return $parsed_response;
   }
 
