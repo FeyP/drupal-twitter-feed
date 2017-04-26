@@ -1,0 +1,4 @@
+configure twitter_feed:
+  title: 'Configure Twitter Feed'
+  description: 'Allows configuration of Twitter Feed settings.'
+  restrict access: TRUE
