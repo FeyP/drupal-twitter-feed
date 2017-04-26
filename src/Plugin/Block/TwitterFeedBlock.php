@@ -78,8 +78,7 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    // @todo: Use Dependency Injection.
-    $config = \Drupal::config('twitter_feed.settings');
+    $config = is_object($this->configFactory) ? $this->configFactory->get('twitter_feed.settings') : \Drupal::config('twitter_feed.settings');
     return [
       'username' => '',
       'max_tweets' => $config->get('max_tweets'),
@@ -150,8 +149,7 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * Gets a bearer token from Twitter API.
    */
   protected function getBearerToken() {
-    // @todo: Use Dependency Injection.
-    $config = \Drupal::config('twitter_feed.settings');
+    $config = $this->configFactory->get('twitter_feed.settings');
 
     // @todo: Store bearer token and check here if it exists. If it does return.
     $encoded_key = base64_encode($config->get('twitter_api_key') . ':' . $config->get('twitter_secret_key'));
