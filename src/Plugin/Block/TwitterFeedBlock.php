@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Plugin\Block\SystemMenuBlock.
- */
-
 namespace Drupal\twitter_feed\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
@@ -15,7 +10,7 @@ use GuzzleHttp\ClientInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Provides a generic Menu block.
+ * Provides a Twitter Feed block.
  *
  * @Block(
  *   id = "twitter_feed_block",
@@ -26,21 +21,25 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterface {
 
   /**
-   * Stores the configuration factory.
+   * The configuration factory.
    *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   protected $configFactory;
 
   /**
+   * The GuzzleHTTP client.
+   *
    * @var \GuzzleHttp\ClientInterface
    */
-  protected $http_client;
+  protected $httpClient;
 
   /**
+   * Access token provided by Twitter API.
+   *
    * @var string
    */
-  protected $access_token;
+  protected $accessToken;
 
   /**
    * Creates a TwitterFeedBlock instance.
@@ -53,11 +52,13 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    *   The plugin implementation definition.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
+   * @param \GuzzleHttp\ClientInterface $http_client
+   *   The GuzzleHTTP client.
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, ConfigFactoryInterface $config_factory, ClientInterface $http_client) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->configFactory = $config_factory;
-    $this->http_client = $http_client;
+    $this->httpClient = $http_client;
   }
 
   /**
@@ -77,11 +78,12 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
+    // @todo: Use Dependency Injection.
     $config = \Drupal::config('twitter_feed.settings');
-    return array(
+    return [
       'username' => '',
       'max_tweets' => $config->get('max_tweets'),
-    );
+    ];
   }
 
   /**
@@ -93,23 +95,23 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
     $defaults = $this->defaultConfiguration();
     $options = range(0, $defaults['max_tweets']);
 
-    $form['username'] = array(
+    $form['username'] = [
       '#type' => 'textfield',
       '#title' => t('Twitter username'),
       '#default_value' => $config['username'],
       '#maxlength' => 512,
       '#description' => t('The Twitter username whose tweets will be displayed.'),
       '#required' => TRUE,
-    );
+    ];
 
-    $form['num_tweets'] = array(
+    $form['num_tweets'] = [
       '#type' => 'select',
       '#title' => $this->t('Number of tweets to display'),
       '#default_value' => $config['num_tweets'],
       '#options' => $options,
       '#description' => $this->t('This will be the number of tweets displayed in the block.'),
       '#required' => TRUE,
-    );
+    ];
 
     return $form;
   }
@@ -127,100 +129,132 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    */
   public function build() {
 
-    // Get tweets
+    // Get tweets.
     $tweets = $this->getBearerToken()->performRequest();
 
-    // Grab text and created at
-    $tweets_text = array();
-    foreach($tweets as $key => $tweet) {
-      $tweets_text[$key]['text'] = $this->prepare_tweet($tweet['text']);
+    // Grab text and created at.
+    $tweets_text = [];
+    foreach ($tweets as $key => $tweet) {
+      $tweets_text[$key]['text'] = $this->prepareTweet($tweet['text']);
       $tweets_text[$key]['created_at'] = $tweet['created_at'];
     }
 
-    return array(
+    return [
       '#theme' => 'twitter_feed_block',
       '#username' => $this->configuration['username'],
       '#tweets' => $tweets_text,
-      '#attached' => array(
-        'library' =>  array(
-          'twitter_feed/base'
-        ),
-      ),
-    );
+    ];
   }
 
-  private function getBearerToken() {
+  /**
+   * Gets a bearer token from Twitter API.
+   */
+  protected function getBearerToken() {
+    // @todo: Use Dependency Injection.
     $config = \Drupal::config('twitter_feed.settings');
 
-    //TODO - store bearer token and check here if it exists. If it does return.
+    // @todo: Store bearer token and check here if it exists. If it does return.
     $encoded_key = base64_encode($config->get('twitter_api_key') . ':' . $config->get('twitter_secret_key'));
 
     $body = 'grant_type=client_credentials';
-    $options = array(
-      'headers' => array(
+    $options = [
+      'headers' => [
         'Authorization' => 'Basic ' . $encoded_key,
-        'Content-Length' =>   strlen($body),
+        'Content-Length' => strlen($body),
         'Content-Type' => 'application/x-www-form-urlencoded;charset=UTF-8',
         'Accept-Encoding' => 'gzip',
-        'User-Agent' => 'Finn\'s Twitter App v1.0.0'
-      ),
+        'User-Agent' => 'Finn\'s Twitter App v1.0.0',
+      ],
       'body' => $body,
-    );
-    $response = $this->http_client->post('https://api.twitter.com/oauth2/token', $options);
+    ];
+    $response = $this->httpClient->post('https://api.twitter.com/oauth2/token', $options);
     $parsed_response = $response->json();
 
-    $this->access_token = $parsed_response['access_token'];
+    $this->accessToken = $parsed_response['access_token'];
     return $this;
   }
 
-  private function performRequest() {
-    $options = array(
-      'headers' => array(
-        'Authorization' => 'Bearer ' . $this->access_token,
-        'User-Agent' => 'Finn\'s Twitter App v1.0.0'
-      ),
-    );
+  /**
+   * Perform a reqeuest to Twitter API.
+   *
+   * @return mixed
+   *   Parsed response (JSON).
+   */
+  protected function performRequest() {
+    $options = [
+      'headers' => [
+        'Authorization' => 'Bearer ' . $this->accessToken,
+        'User-Agent' => 'Finn\'s Twitter App v1.0.0',
+      ],
+    ];
 
-    $response = $this->http_client->get('https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=' . $this->configuration['username'] . '&count=' . $this->configuration['num_tweets'], $options);
+    $response = $this->httpClient->get('https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=' . $this->configuration['username'] . '&count=' . $this->configuration['num_tweets'], $options);
     $parsed_response = $response->json();
     return $parsed_response;
   }
 
   /**
-   * Adds #hashtags, @mentions, and links to a tweet body
-   * @param array $tweet
-   * @return array
+   * Links #hashtags, @mentions, and links in a tweet body.
+   *
+   * @param string $tweet
+   *   Tweet body to prepare.
+   *
+   * @return string
+   *   Prepared tweet body.
    */
-  private function prepare_tweet($tweet = array()) {
-
-    $tweet = $this->format_links($tweet);
-    $tweet = $this->format_hashtags($tweet);
-    $tweet = $this->format_mentions($tweet);
+  protected function prepareTweet($tweet = '') {
+    $tweet = $this->formatLinks($tweet);
+    $tweet = $this->formatHashtags($tweet);
+    $tweet = $this->formatMentions($tweet);
 
     return $tweet;
   }
 
-  private function format_hashtags($tweet = array()) {
-
-    if(strpos($tweet,'#') !== false) {
+  /**
+   * Links hash tags in a tweet body.
+   *
+   * @param string $tweet
+   *   Tweet body to prepare.
+   *
+   * @return string
+   *   Prepared tweet body.
+   */
+  protected function formatHashtags($tweet = '') {
+    if (strpos($tweet, '#') !== FALSE) {
       $tweet = preg_replace('/(^|\s)#(\w*[a-zA-ZüöäßÜÄÖ_]+\w*)/', ' <a href="https://twitter.com/hashtag/$2" target="_blank">#$2</a>', $tweet);
     }
     return $tweet;
   }
 
-  private function format_links($tweet = array()) {
-
-    // TODO - Make better check for URLs
-    if((strpos($tweet,'http') !== false)) {
+  /**
+   * Link URLs in a tweet body.
+   *
+   * @param string $tweet
+   *   Tweet body to prepare.
+   *
+   * @return string
+   *   Prepared tweet body.
+   */
+  protected function formatLinks($tweet = '') {
+    // @todo: Make better check for URLs.
+    if ((strpos($tweet, 'http') !== FALSE)) {
       $pattern = "/(?i)\b((?:https?:\/\/|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))/";
       $tweet = preg_replace($pattern, '<a href="$1" target="_blank">$1</a>', $tweet);
     }
     return $tweet;
   }
 
-  private function format_mentions($tweet = array()) {
-
-    if(strpos($tweet,'@') !== false) {
+  /**
+   * Links mentions in a tweet body.
+   *
+   * @param string $tweet
+   *   Tweet body to prepare.
+   *
+   * @return string
+   *   Prepared tweet body.
+   */
+  protected function formatMentions($tweet = '') {
+    if (strpos($tweet, '@') !== FALSE) {
       $tweet = preg_replace('/(^|\s)@(\w*[a-zA-Z_]+\w*)/', ' <a href="https://twitter.com/$2" target="_blank">@$2</a>', $tweet);
     }
     return $tweet;
@@ -230,7 +264,7 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * {@inheritdoc}
    */
   public function getCacheTags() {
-    // I don't know what this means yet.
+    // @todo: I don't know what this means yet.
     $cache_tags = parent::getCacheTags();
     $cache_tags[] = 'config:twitter_feed.block';
     return $cache_tags;
@@ -240,7 +274,8 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * {@inheritdoc}
    */
   protected function getRequiredCacheContexts() {
-    // TODO - understand caching better
-    return array('cache_context.user.roles', 'cache_context.language');
+    // @todo: Understand caching better.
+    return ['cache_context.user.roles', 'cache_context.language'];
   }
+
 }

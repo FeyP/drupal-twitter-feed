@@ -1,18 +1,12 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Form\ImageToolkitForm.
- */
-
 namespace Drupal\twitter_feed\Form;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Form\ConfigFormBase;
 
 /**
- * Configures image toolkit settings for this site.
+ * Provides a settings form for Twitter Feed module.
  */
 class TwitterSettingsForm extends ConfigFormBase {
 
@@ -37,54 +31,53 @@ class TwitterSettingsForm extends ConfigFormBase {
     $config = $this->config('twitter_feed.settings');
     $number_array = range(1, 25);
 
-    $form['twitter_api_key'] = array(
+    $form['twitter_api_key'] = [
       '#type' => 'textfield',
       '#title' => t('Twitter API key'),
       '#default_value' => $config->get('twitter_api_key'),
       '#maxlength' => 512,
       '#description' => t('The Twitter API key for your app.'),
       '#required' => TRUE,
-    );
+    ];
 
-    $form['twitter_secret_key'] = array(
+    $form['twitter_secret_key'] = [
       '#type' => 'textfield',
       '#title' => t('Twitter API secret key'),
       '#default_value' => $config->get('twitter_secret_key'),
       '#maxlength' => 512,
       '#description' => t('The Twitter API secret key for your app.'),
       '#required' => TRUE,
-    );
+    ];
 
-    $form['twitter_access_api_key'] = array(
+    $form['twitter_access_api_key'] = [
       '#type' => 'textfield',
       '#title' => t('Twitter API access key'),
       '#default_value' => $config->get('twitter_access_api_key'),
       '#maxlength' => 512,
       '#description' => t('The Twitter API access token for your app.'),
       '#required' => TRUE,
-    );
+    ];
 
-    $form['twitter_access_secret_key'] = array(
+    $form['twitter_access_secret_key'] = [
       '#type' => 'textfield',
       '#title' => t('Twitter API access secret key'),
       '#default_value' => $config->get('twitter_access_secret_key'),
       '#maxlength' => 512,
       '#description' => t('The Twitter API access secret token for your app.'),
       '#required' => TRUE,
-    );
+    ];
 
-    $form['max_tweets'] = array(
+    $form['max_tweets'] = [
       '#type' => 'select',
       '#title' => t('Maximum number of items to display'),
       '#options' => array_combine($number_array, $number_array),
       '#default_value' => $config->get('max_tweets'),
       '#description' => $this->t('This will set the maximum allowable number of tweets in the Tweets block config form'),
       '#required' => TRUE,
-    );
+    ];
 
     return parent::buildForm($form, $form_state);
   }
-
 
   /**
    * {@inheritdoc}
