@@ -1,0 +1,19 @@
+twitter_feed.config:
+  type: config_object
+  label: 'Twitter Feed settings'
+  mapping:
+    twitter_api_key:
+      type: text
+      label: 'Twitter API key'
+    twitter_secret_key:
+      type: text
+      label: 'Twitter API secret key'
+    twitter_access_api_key:
+      type: text
+      label: 'Twitter API access key'
+    twitter_access_secret_key:
+      type: text
+      label: 'Twitter API access secret key'
+    max_tweets:
+      type: integer
+      label: 'Maximum number of items to display'
