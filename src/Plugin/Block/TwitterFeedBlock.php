@@ -8,6 +8,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\GuzzleException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -128,9 +129,14 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    * {@inheritdoc}
    */
   public function build() {
-
     // Get tweets.
-    $tweets = $this->getBearerToken()->performRequest();
+    try {
+      $tweets = $this->getBearerToken()->performRequest();
+    }
+    catch (GuzzleException $e) {
+      watchdog_exception('twitter_feed', $e);
+      return [];
+    }
 
     // Grab text and created at.
     $tweets_text = [];
