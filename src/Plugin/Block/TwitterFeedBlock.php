@@ -229,7 +229,7 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    */
   protected function formatHashtags($tweet = '') {
     if (strpos($tweet, '#') !== FALSE) {
-      $tweet = preg_replace('/(^|\s)#(\w*[a-zA-ZüöäßÜÄÖ_]+\w*)/', ' <a href="https://twitter.com/hashtag/$2" target="_blank">#$2</a>', $tweet);
+      $tweet = preg_replace('/(^|\s)#(\w*[a-zA-ZüöäßÜÄÖ_]+\w*)/u', ' <a href="https://twitter.com/hashtag/$2" target="_blank">#$2</a>', $tweet);
     }
     return $tweet;
   }
@@ -246,7 +246,7 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
   protected function formatLinks($tweet = '') {
     // @todo: Make better check for URLs.
     if ((strpos($tweet, 'http') !== FALSE)) {
-      $pattern = "/(?i)\b((?:https?:\/\/|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))/";
+      $pattern = "/(?i)\b((?:https?:\/\/|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))/u";
       $tweet = preg_replace($pattern, '<a href="$1" target="_blank">$1</a>', $tweet);
     }
     return $tweet;
@@ -263,7 +263,7 @@ class TwitterFeedBlock extends BlockBase implements ContainerFactoryPluginInterf
    */
   protected function formatMentions($tweet = '') {
     if (strpos($tweet, '@') !== FALSE) {
-      $tweet = preg_replace('/(^|\s)@(\w*[a-zA-Z_]+\w*)/', ' <a href="https://twitter.com/$2" target="_blank">@$2</a>', $tweet);
+      $tweet = preg_replace('/(^|\s)@(\w*[a-zA-Z_]+\w*)/u', ' <a href="https://twitter.com/$2" target="_blank">@$2</a>', $tweet);
     }
     return $tweet;
   }
